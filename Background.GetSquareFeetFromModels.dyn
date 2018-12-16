@@ -1,0 +1,393 @@
+<Workspace Version="0.9.1.4062" X="30.2875030888729" Y="271.079287870432" zoom="0.308383088789704" Name="Home" Description="" RunType="Manual" RunPeriod="1000" HasRunWithoutCrash="False">
+  <NamespaceResolutionMap>
+    <ClassMap partialName="Application" resolvedName="RevitElements.Application" assemblyName="Rhythm.dll" />
+    <ClassMap partialName="DSCore.List" resolvedName="DSCore.List" assemblyName="DSCoreNodes.dll" />
+    <ClassMap partialName="DSOffice.Excel" resolvedName="DSOffice.Excel" assemblyName="DSOffice.dll" />
+  </NamespaceResolutionMap>
+  <Elements>
+    <PythonNodeModels.PythonNode guid="21c863b3-1d3e-49c3-aa9c-bbc480c48054" type="PythonNodeModels.PythonNode" nickname="Python Script" x="1459.58444542112" y="491.282724882537" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="1">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+
+clr.AddReference('RevitAPI')
+from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Element, Parameter, FormatOptions, Transaction
+from Autodesk.Revit.ApplicationServices.Application import OpenDocumentFile
+
+# Import DocumentManager and TransactionManager
+clr.AddReference("RevitServices")
+import RevitServices
+from RevitServices.Persistence import DocumentManager
+from RevitServices.Transactions import TransactionManager
+
+doc = DocumentManager.Instance.CurrentDBDocument
+uiapp = DocumentManager.Instance.CurrentUIApplication
+app = uiapp.Application
+
+file_path = IN[0]
+values = []
+
+floor_list = []
+#Get all floor.
+for f in file_path:
+	doc = app.OpenDocumentFile(str(f));
+	floor_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Floors).WhereElementIsNotElementType().ToElements()
+	_values = 0
+	
+	#Get the area.
+	for e in floor_collector:
+		parameter = e.LookupParameter("Area")
+		value = parameter.AsDouble()
+		_values = _values + value
+	values.append(_values)	
+OUT = values, floor_list
+</Script>
+    </PythonNodeModels.PythonNode>
+    <CoreNodeModels.Input.Directory guid="cfdf4ff1-75ad-4842-84d7-6e6e89b9b0e6" type="CoreNodeModels.Input.Directory" nickname="Directory Path" x="853.584445421121" y="505.282724882537" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false">
+      <System.String>C:\Users\fpossetto\Desktop\WW-Counter\Testing</System.String>
+    </CoreNodeModels.Input.Directory>
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="52663626-432f-4a69-97aa-9d822bb738f7" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Code Block" x="853.584445421121" y="615.49605821587" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="&quot;*.rvt&quot;;" ShouldFocus="false" />
+    <PythonNodeModels.PythonNode guid="36269b95-84fa-4a80-8ea5-0e445e8b046c" type="PythonNodeModels.PythonNode" nickname="Project Names" x="1459.58444542112" y="599.282724882537" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="1">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+#The inputs to this node will be stored as a list in the IN variables.
+files = IN[0]
+names = []
+for f in files:
+	last = len(f.split("\\"))-1
+	name = f.split("\\")
+	names.append(name[last])
+	_names = []
+	
+	for n in names:
+		_name = n.split(".")
+		_names.append(_name[0])
+		
+#Assign your output to the OUT variable.
+OUT = _names</Script>
+    </PythonNodeModels.PythonNode>
+    <PythonNodeModels.PythonNode guid="9a243967-1d04-47d6-829b-535e44c67ab6" type="PythonNodeModels.PythonNode" nickname="Python Script" x="1235.58444542112" y="545.282724882537" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="2">
+      <Script>from System.IO import Directory, SearchOption
+
+directory = IN[0]
+searchstring = IN[1]
+
+if Directory.Exists(directory):
+	OUT = Directory.GetFiles(directory, searchstring, SearchOption.AllDirectories)
+else:
+	OUT = list()
+</Script>
+    </PythonNodeModels.PythonNode>
+    <PythonNodeModels.PythonNode guid="be4c4eb2-d5f2-4ffb-9cb7-e8ff26a9ce8f" type="PythonNodeModels.PythonNode" nickname="Python Script" x="1737.35630090875" y="231.349886779159" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="1">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+
+clr.AddReference('RevitAPI')
+from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Element, Parameter, FormatOptions, Transaction, HostObject
+from Autodesk.Revit.ApplicationServices.Application import OpenDocumentFile
+
+# Import DocumentManager and TransactionManager
+clr.AddReference("RevitServices")
+import RevitServices
+from RevitServices.Persistence import DocumentManager
+from RevitServices.Transactions import TransactionManager
+
+uiapp = DocumentManager.Instance.CurrentUIApplication
+app = uiapp.Application
+
+file_path = IN[0]
+values = []
+project_levels = []
+project_floors = []
+fran = []
+for f in file_path:
+	_list1 = []
+	_list2 = []
+	doc = app.OpenDocumentFile(str(f));
+	floor_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Floors).WhereElementIsNotElementType().ToElements()
+	level_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Levels).WhereElementIsNotElementType().ToElements()
+	
+	
+	max_level= []
+	elevations = []
+	max_elevations = []
+	
+	name_list = []
+	elevation_list = []
+	area_list = []
+	level_list=[]
+	
+	for f in floor_collector:
+		param_1 = f.LookupParameter("Area")
+		area = param_1.AsDouble()
+		area_list.append(area)
+		
+		param_1 = f.LookupParameter("Level")
+		level = param_1.AsValueString()
+		level_list.append(level)
+	#Get all project levels.
+	for l in level_collector:
+		#names
+		param_1 = l.LookupParameter("Name")
+		name = param_1.AsString()
+		name_list.append(str(name))
+		#elevations
+		param_2 = l.LookupParameter("Elevation")
+		elevation = param_2.AsDouble()
+		elevation_list.append(str(elevation))
+		
+	_list1.append(name_list)
+	_list1.append(elevation_list)
+	_list2.append(level_list)
+	_list2.append(area_list)
+	project_levels.append(_list1)		
+	project_floors.append(_list2)
+
+OUT = project_levels, project_floors
+</Script>
+    </PythonNodeModels.PythonNode>
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="f020d37c-f347-4a35-9956-b571df229a8d" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Project Levels" x="1961.35630090875" y="181.516328092387" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="x[0];" ShouldFocus="false" />
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="d8581f08-1e10-44d8-9626-5113b1dbe818" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="List.Transpose" x="2158.35630090875" y="177.302994759054" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="DSCoreNodes.dll" function="DSCore.List.Transpose@var[]..[]" />
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="7d009aaf-0e6a-4b38-98c7-a97524eb0bdc" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Project Floors" x="1961.35630090875" y="289.610112132597" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="y[1];" ShouldFocus="false" />
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="83e24f56-26ac-4951-a7a4-f404526f3f77" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="List.Transpose" x="2158.35630090875" y="285.396778799263" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="DSCoreNodes.dll" function="DSCore.List.Transpose@var[]..[]" />
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="b08b5126-3cc8-4460-8d4b-60f1dffe5bda" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Code Block" x="3897.07225114869" y="693.586378566778" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="0;" ShouldFocus="false" />
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="a2a3143b-9f21-4160-845f-590a9cb8ab5b" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="Excel.WriteToFile" x="4139.07225114869" y="516.373045233443" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="DSOffice.dll" function="DSOffice.Excel.WriteToFile@string,string,int,int,var[][],bool">
+      <PortInfo index="5" default="True" />
+    </Dynamo.Graph.Nodes.ZeroTouch.DSFunction>
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="71712d6d-779e-4376-bd87-383d1cd47ddb" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Sheet name" x="3897.07225114869" y="585.586378566775" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="&quot;Sheet1&quot;;" ShouldFocus="false" />
+    <CoreNodeModels.Input.Filename guid="db020032-9254-4d54-b415-288107063587" type="CoreNodeModels.Input.Filename" nickname="Excel File" x="3897.07225114869" y="476.373045233443" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="True" IsFrozen="false">
+      <System.String>.\excel_template.xlsx</System.String>
+    </CoreNodeModels.Input.Filename>
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="339afa9a-2d90-42fa-b7c5-671bbe6af83c" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="Count" x="3627.41587155397" y="702.550921061595" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="BuiltIn" function="Count@var[]..[]" />
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="33de2607-fda4-4c6d-a609-46c6563c1d77" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Code Block" x="3341.41587155397" y="489.764254394929" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="0..2;" ShouldFocus="false" />
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="71eed042-c7f8-4b19-9813-88f35cfa37cf" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Code Block" x="3341.41587155397" y="597.764254394929" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="3;" ShouldFocus="false" />
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="962313db-b7e8-4572-b437-70cd35809760" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="List.Sublists" x="3627.41587155397" y="542.550921061595" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="DSCoreNodes.dll" function="DSCore.List.Sublists@var[]..[],var[]..[],int" />
+    <Dynamo.Graph.Nodes.CodeBlockNodeModel guid="4c2287ea-04f5-4458-9e30-da80fe557ba5" type="Dynamo.Graph.Nodes.CodeBlockNodeModel" nickname="Code Block" x="3117.41587155397" y="788.764254394929" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" CodeText="3;" ShouldFocus="false" />
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="7ae7be80-3815-4c61-9d1f-5ae5870f736d" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="List.Flatten" x="3341.41587155397" y="706.550921061595" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="DSCoreNodes.dll" function="DSCore.List.Flatten@var[]..[],int" />
+    <PythonNodeModels.PythonNode guid="d7845bf1-9bf8-48f6-916c-bb90da24586c" type="PythonNodeModels.PythonNode" nickname="Python Script" x="3117.41587155397" y="654.550921061595" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="2">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+
+floors = IN[0]
+projects = IN[1]
+_list = []
+indexes = []
+
+for floor in floors:
+	i = projects[floors.index(floor)]
+	indexes.append(i)
+	for f in floor:
+		sublist = []
+		sublist.append(f)
+		_list.append(sublist)
+		_list.append(i)
+#Assign your output to the OUT variable.
+OUT = _list</Script>
+    </PythonNodeModels.PythonNode>
+    <PythonNodeModels.PythonNode guid="50f1affb-8c59-4617-a4aa-eeddcd137815" type="PythonNodeModels.PythonNode" nickname="Python Script" x="2435.48396176545" y="199.735114272933" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="2">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+#The inputs to this node will be stored as a list in the IN variables.
+project_levels = IN[0]
+project_floors = IN[1]
+elevations = []
+
+for level in project_levels:
+	_list = []
+	for l in level:
+		_max = 0.0
+		_lev = ""
+		_list
+		if l[1]&gt;max:
+			_max = l[1]		
+			_lev = l[0]
+	elevations.append(_lev)
+#Assign your output to the OUT variable.
+OUT = elevations</Script>
+    </PythonNodeModels.PythonNode>
+    <PythonNodeModels.PythonNode guid="dc97d0a1-0fe0-4834-8963-439b51cc9031" type="PythonNodeModels.PythonNode" nickname="Python Script" x="2703.17005064969" y="203.922682353352" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="2">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+#The inputs to this node will be stored as a list in the IN variables.
+highest_levels = IN[0]
+floors = IN[1]
+new_list = []
+new_list2 = []
+for floor in floors:
+	_list=[]
+	_nolist = []
+	for f in floor:
+		if str(f[0]) is str(highest_levels[floors.index(floor)]):
+			_list.append(f)
+		else:
+			_nolist.append(f)		
+	new_list.append(_list)	
+	new_list2.append(_nolist)	
+
+#Assign your output to the OUT variable.
+OUT = new_list2</Script>
+    </PythonNodeModels.PythonNode>
+    <PythonNodeModels.PythonNode guid="2414a06b-e466-4852-b7d9-16d02d17b877" type="PythonNodeModels.PythonNode" nickname="Python Script" x="2383.83801258128" y="540.791994969472" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="1">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+
+clr.AddReference('RevitAPI')
+from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Element, Parameter, FormatOptions, Transaction, HostObject
+from Autodesk.Revit.ApplicationServices.Application import OpenDocumentFile
+
+# Import DocumentManager and TransactionManager
+clr.AddReference("RevitServices")
+import RevitServices
+from RevitServices.Persistence import DocumentManager
+from RevitServices.Transactions import TransactionManager
+
+uiapp = DocumentManager.Instance.CurrentUIApplication
+app = uiapp.Application
+
+file_path = IN[0]
+levels_in_use = []
+
+for f in file_path:
+	_list1 = []
+		
+	doc = app.OpenDocumentFile(str(f));
+	wall_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Walls).WhereElementIsNotElementType().ToElements()
+	
+	
+	name_list = []
+	
+	for w in wall_collector:
+		#names
+		param = w.LookupParameter("Base Constraint")
+		try:
+			name = param.AsValueString()
+			if name in name_list:
+				pass
+			else:
+				name_list.append(str(name))
+		except:
+			print("Error")
+	_list1.append(name_list)
+	levels_in_use.append(_list1)	
+
+	
+
+OUT = levels_in_use
+</Script>
+    </PythonNodeModels.PythonNode>
+    <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="f25bad97-ba70-43cf-9932-6186b676a9e1" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="Flatten" x="2607.83801258128" y="540.791994969472" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" assembly="BuiltIn" function="Flatten@var[]..[]" />
+    <PythonNodeModels.PythonNode guid="0d551e88-f5f1-42b5-85f6-03f2eb443d01" type="PythonNodeModels.PythonNode" nickname="Python Script" x="2886.83801258128" y="540.791994969472" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" inputcount="2">
+      <Script>import clr
+clr.AddReference('ProtoGeometry')
+from Autodesk.DesignScript.Geometry import *
+#The inputs to this node will be stored as a list in the IN variables.
+
+floor_level_area = IN[1]
+levels_in_use = IN[0]
+
+levels = []
+
+for floor in floor_level_area:
+	level = []
+	index = floor_level_area.index(floor)
+	for f in floor:
+		if f[0] in levels_in_use[index]:
+			level.append(f)
+	levels.append(level)
+#Assign your output to the OUT variable.
+OUT = levels</Script>
+    </PythonNodeModels.PythonNode>
+  </Elements>
+  <Connectors>
+    <Dynamo.Graph.Connectors.ConnectorModel start="cfdf4ff1-75ad-4842-84d7-6e6e89b9b0e6" start_index="0" end="9a243967-1d04-47d6-829b-535e44c67ab6" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="52663626-432f-4a69-97aa-9d822bb738f7" start_index="0" end="9a243967-1d04-47d6-829b-535e44c67ab6" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="36269b95-84fa-4a80-8ea5-0e445e8b046c" start_index="0" end="d7845bf1-9bf8-48f6-916c-bb90da24586c" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="9a243967-1d04-47d6-829b-535e44c67ab6" start_index="0" end="21c863b3-1d3e-49c3-aa9c-bbc480c48054" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="9a243967-1d04-47d6-829b-535e44c67ab6" start_index="0" end="36269b95-84fa-4a80-8ea5-0e445e8b046c" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="9a243967-1d04-47d6-829b-535e44c67ab6" start_index="0" end="be4c4eb2-d5f2-4ffb-9cb7-e8ff26a9ce8f" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="9a243967-1d04-47d6-829b-535e44c67ab6" start_index="0" end="2414a06b-e466-4852-b7d9-16d02d17b877" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="be4c4eb2-d5f2-4ffb-9cb7-e8ff26a9ce8f" start_index="0" end="f020d37c-f347-4a35-9956-b571df229a8d" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="be4c4eb2-d5f2-4ffb-9cb7-e8ff26a9ce8f" start_index="0" end="7d009aaf-0e6a-4b38-98c7-a97524eb0bdc" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="f020d37c-f347-4a35-9956-b571df229a8d" start_index="0" end="d8581f08-1e10-44d8-9626-5113b1dbe818" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="d8581f08-1e10-44d8-9626-5113b1dbe818" start_index="0" end="50f1affb-8c59-4617-a4aa-eeddcd137815" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="7d009aaf-0e6a-4b38-98c7-a97524eb0bdc" start_index="0" end="83e24f56-26ac-4951-a7a4-f404526f3f77" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="83e24f56-26ac-4951-a7a4-f404526f3f77" start_index="0" end="50f1affb-8c59-4617-a4aa-eeddcd137815" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="83e24f56-26ac-4951-a7a4-f404526f3f77" start_index="0" end="dc97d0a1-0fe0-4834-8963-439b51cc9031" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="83e24f56-26ac-4951-a7a4-f404526f3f77" start_index="0" end="0d551e88-f5f1-42b5-85f6-03f2eb443d01" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="b08b5126-3cc8-4460-8d4b-60f1dffe5bda" start_index="0" end="a2a3143b-9f21-4160-845f-590a9cb8ab5b" end_index="3" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="b08b5126-3cc8-4460-8d4b-60f1dffe5bda" start_index="0" end="a2a3143b-9f21-4160-845f-590a9cb8ab5b" end_index="2" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="71712d6d-779e-4376-bd87-383d1cd47ddb" start_index="0" end="a2a3143b-9f21-4160-845f-590a9cb8ab5b" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="db020032-9254-4d54-b415-288107063587" start_index="0" end="a2a3143b-9f21-4160-845f-590a9cb8ab5b" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="33de2607-fda4-4c6d-a609-46c6563c1d77" start_index="0" end="962313db-b7e8-4572-b437-70cd35809760" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="71eed042-c7f8-4b19-9813-88f35cfa37cf" start_index="0" end="962313db-b7e8-4572-b437-70cd35809760" end_index="2" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="962313db-b7e8-4572-b437-70cd35809760" start_index="0" end="a2a3143b-9f21-4160-845f-590a9cb8ab5b" end_index="4" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="4c2287ea-04f5-4458-9e30-da80fe557ba5" start_index="0" end="7ae7be80-3815-4c61-9d1f-5ae5870f736d" end_index="1" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="7ae7be80-3815-4c61-9d1f-5ae5870f736d" start_index="0" end="339afa9a-2d90-42fa-b7c5-671bbe6af83c" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="7ae7be80-3815-4c61-9d1f-5ae5870f736d" start_index="0" end="962313db-b7e8-4572-b437-70cd35809760" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="d7845bf1-9bf8-48f6-916c-bb90da24586c" start_index="0" end="7ae7be80-3815-4c61-9d1f-5ae5870f736d" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="50f1affb-8c59-4617-a4aa-eeddcd137815" start_index="0" end="dc97d0a1-0fe0-4834-8963-439b51cc9031" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="2414a06b-e466-4852-b7d9-16d02d17b877" start_index="0" end="f25bad97-ba70-43cf-9932-6186b676a9e1" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="f25bad97-ba70-43cf-9932-6186b676a9e1" start_index="0" end="0d551e88-f5f1-42b5-85f6-03f2eb443d01" end_index="0" portType="0" />
+    <Dynamo.Graph.Connectors.ConnectorModel start="0d551e88-f5f1-42b5-85f6-03f2eb443d01" start_index="0" end="d7845bf1-9bf8-48f6-916c-bb90da24586c" end_index="0" portType="0" />
+  </Connectors>
+  <Notes>
+    <Dynamo.Graph.Notes.NoteModel guid="053df412-f93d-4818-a4e7-ae6ee3443faa" text="Get Files" x="1235.58444542112" y="506.282724882537" />
+    <Dynamo.Graph.Notes.NoteModel guid="81046f16-4834-4286-a0bd-48f533ad09ea" text="All Sq ft per projects" x="1459.58444542112" y="452.282724882537" />
+    <Dynamo.Graph.Notes.NoteModel guid="5200bc70-3677-436d-968a-08e270793110" text="Levels in use" x="2383.83801258128" y="501.791994969472" />
+    <Dynamo.Graph.Notes.NoteModel guid="19bcf508-4d60-4be7-afa4-55d52eccf324" text="Drop Ghost levels" x="2886.83801258128" y="501.791994969472" />
+  </Notes>
+  <Annotations>
+    <Dynamo.Graph.Annotations.AnnotationModel guid="86a6e1b4-9fab-4bed-91a5-63342fcfcd2f" annotationText="Set Directory path" left="843.584445421121" top="406.282724882537" width="753.999999999999" height="302.213333333333" fontSize="30" InitialTop="452.282724882537" InitialHeight="304.173532476174" TextblockHeight="36" backgrouund="#FFC1D676">
+      <Models ModelGuid="21c863b3-1d3e-49c3-aa9c-bbc480c48054" />
+      <Models ModelGuid="cfdf4ff1-75ad-4842-84d7-6e6e89b9b0e6" />
+      <Models ModelGuid="52663626-432f-4a69-97aa-9d822bb738f7" />
+      <Models ModelGuid="36269b95-84fa-4a80-8ea5-0e445e8b046c" />
+      <Models ModelGuid="9a243967-1d04-47d6-829b-535e44c67ab6" />
+      <Models ModelGuid="053df412-f93d-4818-a4e7-ae6ee3443faa" />
+      <Models ModelGuid="81046f16-4834-4286-a0bd-48f533ad09ea" />
+    </Dynamo.Graph.Annotations.AnnotationModel>
+    <Dynamo.Graph.Annotations.AnnotationModel guid="5dfb8ec3-c8f4-4571-ab28-03c285c83dc2" annotationText="Get level and area for each floor" left="1727.35630090875" top="145.302994759054" width="553" height="237.307117373543" fontSize="18" InitialTop="177.302994759054" InitialHeight="521.471699704644" TextblockHeight="22" backgrouund="#FFA4E1FF">
+      <Models ModelGuid="be4c4eb2-d5f2-4ffb-9cb7-e8ff26a9ce8f" />
+      <Models ModelGuid="f020d37c-f347-4a35-9956-b571df229a8d" />
+      <Models ModelGuid="d8581f08-1e10-44d8-9626-5113b1dbe818" />
+      <Models ModelGuid="7d009aaf-0e6a-4b38-98c7-a97524eb0bdc" />
+      <Models ModelGuid="83e24f56-26ac-4951-a7a4-f404526f3f77" />
+    </Dynamo.Graph.Annotations.AnnotationModel>
+    <Dynamo.Graph.Annotations.AnnotationModel guid="0ed56e67-9725-4f56-85f9-10308ceae880" annotationText="Set Names and values in excel" left="3887.07225114869" top="444.373045233443" width="423" height="342.213333333335" fontSize="18" InitialTop="476.373045233443" InitialHeight="616.521212209458" TextblockHeight="22" backgrouund="#FFFFC999">
+      <Models ModelGuid="a2a3143b-9f21-4160-845f-590a9cb8ab5b" />
+      <Models ModelGuid="b08b5126-3cc8-4460-8d4b-60f1dffe5bda" />
+      <Models ModelGuid="71712d6d-779e-4376-bd87-383d1cd47ddb" />
+      <Models ModelGuid="db020032-9254-4d54-b415-288107063587" />
+    </Dynamo.Graph.Annotations.AnnotationModel>
+    <Dynamo.Graph.Annotations.AnnotationModel guid="63394bde-0dc5-4715-bbed-a69c16d72dfa" annotationText="Make list with three values" left="3107.41587155397" top="457.764254394929" width="659" height="424" fontSize="18" InitialTop="489.764254394929" InitialHeight="358.093772477719" TextblockHeight="22" backgrouund="#FFC1D676">
+      <Models ModelGuid="d7845bf1-9bf8-48f6-916c-bb90da24586c" />
+      <Models ModelGuid="7ae7be80-3815-4c61-9d1f-5ae5870f736d" />
+      <Models ModelGuid="4c2287ea-04f5-4458-9e30-da80fe557ba5" />
+      <Models ModelGuid="962313db-b7e8-4572-b437-70cd35809760" />
+      <Models ModelGuid="71eed042-c7f8-4b19-9813-88f35cfa37cf" />
+      <Models ModelGuid="33de2607-fda4-4c6d-a609-46c6563c1d77" />
+      <Models ModelGuid="339afa9a-2d90-42fa-b7c5-671bbe6af83c" />
+    </Dynamo.Graph.Annotations.AnnotationModel>
+    <Dynamo.Graph.Annotations.AnnotationModel guid="76890864-dd65-460f-ae52-dd3a9320fc37" annotationText="Without Last level" left="2425.48396176545" top="167.735114272933" width="411.68608888424" height="155.187568080419" fontSize="18" InitialTop="199.735114272933" InitialHeight="153.187568080419" TextblockHeight="22" backgrouund="#FFD4B6DB">
+      <Models ModelGuid="50f1affb-8c59-4617-a4aa-eeddcd137815" />
+      <Models ModelGuid="dc97d0a1-0fe0-4834-8963-439b51cc9031" />
+    </Dynamo.Graph.Annotations.AnnotationModel>
+    <Dynamo.Graph.Annotations.AnnotationModel guid="954eb613-47da-4cee-ba7c-d4d945724b10" annotationText="Without Ghost levels" left="2373.83801258128" top="469.791994969472" width="637" height="190" fontSize="18" InitialTop="501.791994969472" InitialHeight="197.648986786536" TextblockHeight="22" backgrouund="#FFD4B6DB">
+      <Models ModelGuid="2414a06b-e466-4852-b7d9-16d02d17b877" />
+      <Models ModelGuid="f25bad97-ba70-43cf-9932-6186b676a9e1" />
+      <Models ModelGuid="0d551e88-f5f1-42b5-85f6-03f2eb443d01" />
+      <Models ModelGuid="5200bc70-3677-436d-968a-08e270793110" />
+      <Models ModelGuid="19bcf508-4d60-4be7-afa4-55d52eccf324" />
+    </Dynamo.Graph.Annotations.AnnotationModel>
+  </Annotations>
+  <Presets />
+  <Cameras>
+    <Camera Name="Background Preview" eyeX="-17" eyeY="24" eyeZ="50" lookX="12" lookY="-13" lookZ="-58" upX="0" upY="1" upZ="0" />
+  </Cameras>
+</Workspace>
